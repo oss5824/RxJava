@@ -15,10 +15,32 @@
   - 콜드 옵저버블  
     * 콜드 옵저버블은 구독자가 있기 전까지는 옵저버블로 아이템을 전송하지 않겟다는 의미
     * 어떤 이벤트가 진행중이어도 .subscribe()가 호출되기 전에 아이템은 생성되거나 전송받을 수 없음  
+    * 데이터 기반의 옵저버블은 대부분 Cold로 만들어짐.HTTP의 GET이나 DB쿼리처럼 동일한 옵저버블 객체에서 서로 다른 결과를 생성할 때에도 마찬가지
+    * 데이터 혹은 작업이 모든 관찰자에게 재생되고 실제 사용 예시로 Retrofit통신, Room 쿼리 같은 경우가 있음
+    * ex. Youtube동영상을 재생하는 것과 같이 구독을 요청하면 아이템을 발행하기 시작
+```java
+  Observable src = Observable.interval(1, TimeUnit.SECONDS);
+  src.subscribe(value -> System.out.println("First: " + value));
+  Thread.sleep(3000);
+  src.subscribe(value -> System.out.println("Second: " + value));
+  Thread.sleep(3000);
+  //First가 0,1,2,3까지 생성된 후 Second가 0부터 시작되며 이후 (4,1),(5,2)...를 수신
+```
   - 핫 옵저버블  
     * 옵저버블이 만들어지면서 내부적으로 아이템을 생성(전송)함
     * 생성된 상태나 정보들이 계속해서 업데이트되고 이 자료를 받을 준비가 됐는지 아닌지 전혀 신경쓰지 않기 때문에 구독자가 아무도 없다면 업데이트 된 데이터들은 잃어버리게 됨  
-
+    * 가장 일반적으로 안드로이드에서 UI이벤트를 들 수 있음. 클릭 이벤트는 observer가 구독후 이벤트만 수신하는 용도로 사용되고 이를 재생하기 위해 캐싱할 필요가 
+    * ex. 라이브 방송을 시청하는 것처럼 아이템 발행이 시작된 후 모든 구독자에게 동시 같은 아이템을 발행
+```java
+  ConnectableObservable src = Observable.interval(1, TimeUnit.SECONDS).publish();
+  src.connect();
+  src.subscribe(value -> System.out.println("First: " + value));
+  Thread.sleep(3000);
+  src.subscribe(value -> System.out.println("Second: " + value));
+  Thread.sleep(3000);
+  //publish 연산자를 통해 Observable을 Hot Observable로 변환. publish만으로는 아이템 replay가 활성화 되지 않고 connect()를 호출해야 아이템을 발행하기 시작
+  //Cold와는 다르게 First가 0,1,2,3까지 생성된 후 Second는 3부터 시작되며 이후 (4,4),(5,5)로 진행되어 동시 같은 아이템 수신
+```
 ## 디스포저블 
 + 옵저버블의 생애 주기를 제어하기 위해 사용하는 도구  
 + 참조를 얻는 방법
