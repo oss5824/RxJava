@@ -52,3 +52,69 @@
     Observable.just(new User("id1","이름1","num1"))
     .subscribe(user->log(user.id,user.name,user.name));
 ```
+
+## 아이템 결합
++ 두 비동기 작업을 실행하고 작업 결과를 기다린 후 다음 단계를 수행하기 위해 사용
+
+### zip
++ 옵저버블 아이템을 가져와 하나로 결합하고 새로운 값을 생성하는 작업
++ 다음흐름을 진행하기 전 두 옵저버블이 값을 생성할 때까지 기다림
++ 옵저버블 중 하나가 완료된다면 zip 연산자는 자동으로 다른 것의 구독을 취소함
+
+```java
+    Observable.zip(
+        Observable.just("test1","test2"),
+        Observable.interval(1,TimeUnit.SECONDS),
+        (number,interval)->number+"-"+interval
+    ).subscribe(e->log(e));
+    // just의 완료에 의해 zip이 interval의 구독을 취소(dispose)하더라도 종료되지는(terminate) 않음 
+```
+
+### combineLatest
++ zip과 유사하게 여러 옵저버블의 아이템을 병합하는데 사용할 수 있지만 양쪽 모두에서 값이 생성되기를 기다리지 않고 하나가 아이템을 내보낼 때마다 새로운 값 생성
+```java
+    Observable.combineLatest(
+        Observable.just("test1","test2"),
+        Observable.interval(1,TimeUnit.SECONDS),
+        (number,interval)->number+"-"+interval
+    ).subscribe(e->log(e));
+    // 기다리지 않기 때문에 interval이 생성되기전에 just옵저버블이 완료될 수가 있음
+```
+
+### merge와 concat
++ concat은 앞쪽의 옵저버블이 완료될 때까지 기다리고 완료된 후 다음의 옵저버블이 실행
+```java
+    Observable.concat(
+        Observable.interval(1,TimeUnit.SECONDS),
+        Observable.just("test1","test2")
+    ).subscribe(e->log(e));
+    // interval이 절대 완료되지 않기 때문에 just는 실행되지 않음
+```
+
++ merge는 앞쪽의 옵저버블의 완료를 기다리지 않음
+```java
+    Observable.merge(
+        Observable.interval(1,TimeUnit.SECONDS),
+        Observable.just("test1","test2")
+    ).subscribe(e->log(e));
+```
+
+## 필터링
+### filter
++ 지정된 조건과 일치하지 않은 값을 건너 뜀
+
+### distinct
++ 내부적으로 세트를 이용해 아이템의 존재 여부를 확인 가능함
+
+### groupBy
++ 주어진 key함수를 통해 .groupBy()는 새로운 옵저버블 세트를 방출할 것이고 key함수에 의해 반환된 값과 같은 값을 가진 아이템을 포함
+
+```java
+    Observable.just(
+        new Stock("sam","1"),new Stock("sam","2"),
+        new Stock("ka","3"),new Stock("sam","4")
+    ).groupBy(Stock::getStockSymbol)//symbol값에 의해 group을 지어줌
+    .flatMapSingle(groupedObservable->
+        groupedObservalbe.count()//이로인해 sam에 대해서 3출력 ka에 대해서 1이 출력될 것
+    ).subscribe(this::log);
+```
